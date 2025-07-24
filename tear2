@@ -1,0 +1,45 @@
+// 2. Tier-1: Basic case-insensitive LIKE search
+// ---------------------------------------------
+// WorkflowRepository.java
+package com.example.workflow.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import com.example.workflow.entity.Workflow;
+
+import java.util.List;
+
+public interface WorkflowRepository extends JpaRepository<Workflow, Long> {
+    @Query("""
+      SELECT w FROM Workflow w
+      WHERE LOWER(w.name) LIKE LOWER(CONCAT('%', :q, '%'))
+         OR LOWER(w.description) LIKE LOWER(CONCAT('%', :q, '%'))
+      """)
+    List<Workflow> searchByNameOrDescription(@Param("q") String query);
+}
+
+// WorkflowController.java (search endpoint)
+package com.example.workflow.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import com.example.workflow.entity.Workflow;
+import com.example.workflow.repository.WorkflowRepository;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/workflows")
+public class WorkflowController {
+    @Autowired
+    private WorkflowRepository workflowRepo;
+
+    @GetMapping("/search")
+    public List<String> search(@RequestParam("q") String q) {
+        return workflowRepo.searchByNameOrDescription(q).stream()
+            .map(Workflow::getWorkflowStrId)
+            .collect(Collectors.toList());
+    }
+}
