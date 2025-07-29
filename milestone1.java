@@ -4,7 +4,8 @@
 // DependencyRequestDto.java
 package com.example.workflow.dto;
 
-import jakarta.validation.constraints.NotBlankpublic class DependencyRequestDto {
+import jakarta.validation.constraints.NotBlank;
+public class DependencyRequestDto {
     @NotBlank
     private String stepStrId;
 
