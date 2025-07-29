@@ -1,5 +1,4 @@
 
-
 // DependencyRequestDto.java
 package com.example.workflow.dto;
 
@@ -40,6 +39,7 @@ import com.example.workflow.repository.StepRepository;
 import com.example.workflow.repository.DependencyRepository;
 import com.example.workflow.exception.ResourceNotFoundException;
 
+// WorkflowService.java
 @Service
 public class WorkflowService {
     @Autowired
@@ -48,31 +48,33 @@ public class WorkflowService {
     private DependencyRepository dependencyRepository;
 
     public void addDependency(String workflowStrId, DependencyRequestDto req) {
-        // normalize to lowercase
-        String wfId = workflowStrId.toLowerCase();
-        String stepId = req.getStepStrId().toLowerCase();
-        String prereqId = req.getPrerequisiteStepStrId().toLowerCase();
+        // Self-dependency check (null-safe, trimmed)
+        String stepId = req.getStepStrId();
+        String prereqId = req.getPrerequisiteStepStrId();
 
-        // self‐dependency check
-        if (stepId.equals(prereqId)) {
+        if (stepId == null || prereqId == null) {
+            throw new IllegalArgumentException("Step and prerequisite IDs are required.");
+        }
+        if (stepId.trim().equalsIgnoreCase(prereqId.trim())) {
             throw new IllegalArgumentException("A step cannot depend on itself.");
         }
 
-        // lookup steps (case‐insensitive)
+        // Lookup steps (case-insensitive matches in repo)
         Step step = stepRepository
-            .findByStepStrIdAndWorkflow_WorkflowStrId(stepId, wfId)
+            .findByStepStrIdAndWorkflow_WorkflowStrId(stepId.trim(), workflowStrId.trim())
             .orElseThrow(() -> new ResourceNotFoundException("Step not found."));
         Step prereq = stepRepository
-            .findByStepStrIdAndWorkflow_WorkflowStrId(prereqId, wfId)
+            .findByStepStrIdAndWorkflow_WorkflowStrId(prereqId.trim(), workflowStrId.trim())
             .orElseThrow(() -> new ResourceNotFoundException("Prerequisite step not found."));
 
-        // save dependency
+        // Save dependency (you can also check here for cycles if needed for later milestones)
         Dependency dep = new Dependency();
         dep.setStep(step);
         dep.setPrerequisiteStep(prereq);
         dependencyRepository.save(dep);
     }
 }
+
 
 // StepRepository.java
 package com.example.workflow.repository;
@@ -84,3 +86,20 @@ import java.util.Optional;
 public interface StepRepository extends JpaRepository<Step, Long> {
     Optional<Step> findByStepStrIdAndWorkflow_WorkflowStrId(String stepStrId, String workflowStrId);
 }
+
+// for controller add 
+@PostMapping("/{workflow_str_id}/dependencies")
+public ResponseEntity<?> addDependency(
+    @PathVariable("workflow_str_id") String workflowStrId,
+    @RequestBody DependencyRequestDto req
+) {
+    try {
+        workflowService.addDependency(workflowStrId, req);
+        return ResponseEntity.ok(Map.of("status", "dependency_added"));
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+    } catch (ResourceNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+    }
+}
+
