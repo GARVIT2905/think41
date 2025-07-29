@@ -1,18 +1,31 @@
-// 1. Enforce case‐insensitive IDs on create and lookup
-// ----------------------------------------------------
+
 
 // DependencyRequestDto.java
 package com.example.workflow.dto;
 
-import jakarta.validation.constraints.NotBlank;
+
 public class DependencyRequestDto {
-    @NotBlank
+    
     private String stepStrId;
 
-    @NotBlank
+   
     private String prerequisiteStepStrId;
 
-    // getters & setters
+    public String getStepStrId() {
+        return stepStrId;
+    }
+
+    public void setStepStrId(String stepStrId) {
+        this.stepStrId = stepStrId;
+    }
+
+    public String getPrerequisiteStepStrId() {
+        return prerequisiteStepStrId;
+    }
+
+    public void setPrerequisiteStepStrId(String prerequisiteStepStrId) {
+        this.prerequisiteStepStrId = prerequisiteStepStrId;
+    }
 }
 
 // WorkflowService.java
